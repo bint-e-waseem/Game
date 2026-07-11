@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Chalkboard Tic-Tac-Toe</title>
+<style>
+  :root{
+    --board:#2e3b32;
+    --board-edge:#1c2620;
+    --chalk-white:#f4f1e8;
+    --chalk-yellow:#f0d878;
+    --chalk-pink:#e88ba0;
+    --wood:#7a5232;
+    --wood-dark:#5c3d24;
+    --dust:rgba(244,241,232,0.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    height:100%;
+    margin:0;
+    background:
+      radial-gradient(ellipse at top left, #3a2a1a 0%, #241a10 60%),
+      #1c130c;
+    font-family: 'Segoe Print','Comic Sans MS','Marker Felt',cursive;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .frame{
+    background:
+      linear-gradient(160deg, var(--wood) 0%, var(--wood-dark) 100%);
+    padding:28px 28px 22px;
+    border-radius:14px;
+    box-shadow:
+      0 25px 60px rgba(0,0,0,0.55),
+      inset 0 0 0 4px rgba(0,0,0,0.25),
+      inset 0 2px 8px rgba(255,255,255,0.08);
+    position:relative;
+  }
+  .frame::before{
+    content:"";
+    position:absolute; inset:8px;
+    border:2px solid rgba(255,255,255,0.06);
+    border-radius:8px;
+    pointer-events:none;
+  }
+  .board-wrap{
+    background:var(--board);
+    border-radius:6px;
+    padding:22px;
+    box-shadow:
+      inset 0 0 40px rgba(0,0,0,0.55),
+      inset 0 0 3px rgba(0,0,0,0.9);
+    position:relative;
+    background-image:
+      radial-gradient(var(--dust) 1px, transparent 1px),
+      radial-gradient(var(--dust) 1px, transparent 1px);
+    background-size: 18px 18px, 26px 26px;
+    background-position: 0 0, 9px 13px;
+  }
+  h1{
+    text-align:center;
+    color:var(--chalk-white);
+    font-size:26px;
+    letter-spacing:2px;
+    margin:0 0 4px;
+    text-shadow: 0 0 6px rgba(244,241,232,0.35);
+    transform:rotate(-0.5deg);
+  }
+  .subtitle{
+    text-align:center;
+    color:var(--chalk-yellow);
+    opacity:0.85;
+    font-size:14px;
+    margin:0 0 16px;
+    letter-spacing:1px;
+  }
+  .status{
+    text-align:center;
+    color:var(--chalk-white);
+    font-size:19px;
+    min-height:28px;
+    margin-bottom:14px;
+    transition:opacity .2s;
+  }
+  .status.win{ color:var(--chalk-yellow); text-shadow:0 0 10px rgba(240,216,120,0.6);}
+  .status.draw{ color:var(--chalk-pink); }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(3,88px);
+    grid-template-rows:repeat(3,88px);
+    gap:0;
+    position:relative;
+  }
+  .grid::before, .grid::after,
+  .grid .vline1, .grid .vline2{ }
+
+  .cell{
+    display:flex; align-items:center; justify-content:center;
+    font-size:44px;
+    color:var(--chalk-white);
+    cursor:pointer;
+    position:relative;
+    user-select:none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* hand-drawn chalk grid lines using box shadows on borders */
+  .cell{ border:0; }
+  .cell:nth-child(1), .cell:nth-child(2), .cell:nth-child(3){
+    border-bottom:3px solid rgba(244,241,232,0.55);
+  }
+  .cell:nth-child(7), .cell:nth-child(8), .cell:nth-child(9){
+    border-top:none;
+  }
+  .cell:nth-child(4), .cell:nth-child(5), .cell:nth-child(6){
+    border-top:3px solid rgba(244,241,232,0.55);
+    border-bottom:3px solid rgba(244,241,232,0.55);
+  }
+  .cell:nth-child(1), .cell:nth-child(4), .cell:nth-child(7){
+    border-right:3px solid rgba(244,241,232,0.55);
+  }
+  .cell:nth-child(3), .cell:nth-child(6), .cell:nth-child(9){
+    border-left:none;
+  }
+  .cell:nth-child(2), .cell:nth-child(5), .cell:nth-child(8){
+    border-right:3px solid rgba(244,241,232,0.55);
+    border-left:3px solid rgba(244,241,232,0.55);
+  }
+  .cell:hover:not(.taken){
+    background:rgba(244,241,232,0.06);
+  }
+  .cell.taken{ cursor:default; }
+  .cell .mark{
+    animation: chalkIn .18s ease-out;
+    filter: drop-shadow(0 0 3px rgba(0,0,0,0.4));
+  }
+  .cell.x .mark{ color:var(--chalk-white); }
+  .cell.o .mark{ color:var(--chalk-pink); }
+  .cell.winning .mark{ color:var(--chalk-yellow); text-shadow:0 0 12px rgba(240,216,120,0.8); }
+  @keyframes chalkIn{
+    from{ opacity:0; transform:scale(0.5) rotate(-8deg); }
+    to{ opacity:1; transform:scale(1) rotate(0deg); }
+  }
+
+  .controls{
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    margin-top:18px;
+  }
+  button{
+    font-family:inherit;
+    font-size:15px;
+    letter-spacing:1px;
+    padding:9px 20px;
+    border-radius:6px;
+    border:2px solid rgba(244,241,232,0.5);
+    background:transparent;
+    color:var(--chalk-white);
+    cursor:pointer;
+    transition: all .15s;
+  }
+  button:hover{
+    background:rgba(244,241,232,0.12);
+    transform:translateY(-1px);
+  }
+  button:active{ transform:translateY(0); }
+
+  .score{
+    display:flex;
+    justify-content:space-around;
+    margin-top:16px;
+    color:var(--chalk-white);
+    font-size:14px;
+    opacity:0.85;
+    letter-spacing:1px;
+  }
+  .score span b{ display:block; font-size:20px; color:var(--chalk-yellow); }
+  .score .o b{ color: var(--chalk-pink); }
+
+  .eraser{
+    position:absolute;
+    bottom:-14px; right:18px;
+    width:46px; height:20px;
+    background:linear-gradient(180deg,#d9c9a0,#b89f6c);
+    border-radius:4px;
+    box-shadow:0 3px 6px rgba(0,0,0,0.4);
+    transform:rotate(-4deg);
+  }
+</style>
+</head>
+<body>
+  <div class="frame">
+    <div class="board-wrap">
+      <h1>TIC · TAC · TOE</h1>
+      <div class="subtitle">— chalkboard edition —</div>
+      <div class="status" id="status">Player X's turn</div>
+      <div class="grid" id="grid"></div>
+      <div class="controls">
+        <button id="newRound">New Round</button>
+        <button id="resetScore">Reset Score</button>
+      </div>
+      <div class="score">
+        <span class="x">Player X<b id="scoreX">0</b></span>
+        <span>Draws<b id="scoreD">0</b></span>
+        <span class="o">Player O<b id="scoreO">0</b></span>
+      </div>
+      <div class="eraser"></div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const gridEl = document.getElementById('grid');
+  const statusEl = document.getElementById('status');
+  const scoreXEl = document.getElementById('scoreX');
+  const scoreOEl = document.getElementById('scoreO');
+  const scoreDEl = document.getElementById('scoreD');
+
+  let board, current, gameOver;
+  let scores = { X:0, O:0, D:0 };
+
+  const WINS = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  function init(){
+    board = Array(9).fill(null);
+    current = 'X';
+    gameOver = false;
+    renderBoard();
+    setStatus(`Player ${current}'s turn`);
+  }
+
+  function renderBoard(){
+    gridEl.innerHTML = '';
+    board.forEach((val, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'cell' + (val ? ' taken ' + val.toLowerCase() : '');
+      cell.dataset.index = i;
+      if (val) {
+        const mark = document.createElement('span');
+        mark.className = 'mark';
+        mark.textContent = val;
+        cell.appendChild(mark);
+      }
+      cell.addEventListener('click', onCellClick);
+      gridEl.appendChild(cell);
+    });
+  }
+
+  function setStatus(text, cls){
+    statusEl.textContent = text;
+    statusEl.className = 'status' + (cls ? ' ' + cls : '');
+  }
+
+  function onCellClick(e){
+    if (gameOver) return;
+    const i = Number(e.currentTarget.dataset.index);
+    if (board[i]) return;
+
+    board[i] = current;
+    renderBoard();
+
+    const winLine = getWinLine(current);
+    if (winLine){
+      gameOver = true;
+      highlightWin(winLine);
+      setStatus(`Player ${current} wins!`, 'win');
+      scores[current]++;
+      updateScores();
+      return;
+    }
+    if (board.every(v => v)){
+      gameOver = true;
+      setStatus("It's a draw!", 'draw');
+      scores.D++;
+      updateScores();
+      return;
+    }
+    current = current === 'X' ? 'O' : 'X';
+    setStatus(`Player ${current}'s turn`);
+  }
+
+  function getWinLine(p){
+    for (const line of WINS){
+      const [a,b,c] = line;
+      if (board[a]===p && board[b]===p && board[c]===p) return line;
+    }
+    return null;
+  }
+
+  function highlightWin(line){
+    const cells = gridEl.children;
+    line.forEach(i => cells[i].classList.add('winning'));
+  }
+
+  function updateScores(){
+    scoreXEl.textContent = scores.X;
+    scoreOEl.textContent = scores.O;
+    scoreDEl.textContent = scores.D;
+  }
+
+  document.getElementById('newRound').addEventListener('click', init);
+  document.getElementById('resetScore').addEventListener('click', () => {
+    scores = { X:0, O:0, D:0 };
+    updateScores();
+    init();
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>
